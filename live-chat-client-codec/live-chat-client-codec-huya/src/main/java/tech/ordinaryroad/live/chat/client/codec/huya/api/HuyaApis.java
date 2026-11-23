@@ -43,9 +43,9 @@ import tech.ordinaryroad.live.chat.client.commons.base.exception.BaseException;
 import tech.ordinaryroad.live.chat.client.commons.util.OrJacksonUtil;
 import tech.ordinaryroad.live.chat.client.commons.util.OrLiveChatHttpUtil;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * API简易版
@@ -61,13 +61,13 @@ import java.util.Optional;
 public class HuyaApis {
 
     // TODO TimedCache
-    public static final Map<Integer, PropsItem> GIFT_ITEMS = new HashMap<>();
+    public static final Map<Integer, PropsItem> GIFT_ITEMS = new ConcurrentHashMap<>();
 
     private static final String PATTERN_TT_ROOM_DATA = "TT_ROOM_DATA = (\\{.*?\\});";
     private static final String PATTERN_TT_PROFILE_INFO = "TT_PROFILE_INFO = (\\{.*\\}?);";
     private static final String PATTERN_TT_PLAYER_CFG = "TT_PLAYER_CFG = (\\{.*?\\});";
     private static final String PATTERN_TT_PLAYER_CONF = "TT_PLAYER_CONF = (\\{.*?\\});";
-    private static final String PATTERN_HY_PLAYER_CONFIG_STREAM = "hyPlayerConfig\\s*=\\s*\\{[\\s\\S]*?stream:\\s*(\\{[\\s\\S]*?\\})\\s*\\}";
+    private static final String PATTERN_HY_PLAYER_CONFIG_STREAM = "hyPlayerConfig\\s*=\\s*\\{[\\s\\S]*?stream:\\s*(\\{[\\s\\S]*?\\})\\s*\\};";
 
     public static HuyaRoomInitResult roomInit(Object roomId) {
         return roomInit(roomId, null);

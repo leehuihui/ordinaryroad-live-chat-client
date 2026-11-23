@@ -45,8 +45,16 @@ import java.util.Map;
 @NoArgsConstructor
 public class MsgStatInfo extends TarsStructBase {
 
-    private Map<String, Map<Long, Integer>> mSignalPushUriCount = new HashMap<>();
-    private Map<String, Map<Long, Integer>> mP2pPushUriCount = new HashMap<>();
+    private Map<String, Map<Long, Integer>> mSignalPushUriCount = new HashMap<String, Map<Long, Integer>>() {{
+        put("", new HashMap<Long, Integer>() {{
+            put(0L, 0);
+        }});
+    }};
+    private Map<String, Map<Long, Integer>> mP2pPushUriCount = new HashMap<String, Map<Long, Integer>>() {{
+        put("", new HashMap<Long, Integer>() {{
+            put(0L, 0);
+        }});
+    }};
     private int iSupportAckMsgStat;
 
     @Override
