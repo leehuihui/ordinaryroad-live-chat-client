@@ -27,6 +27,8 @@ package tech.ordinaryroad.live.chat.client.codec.bilibili.msg;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.google.protobuf.CodedInputStream;
+import com.google.protobuf.WireFormat;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,6 +37,8 @@ import tech.ordinaryroad.live.chat.client.codec.bilibili.constant.OperationEnum;
 import tech.ordinaryroad.live.chat.client.codec.bilibili.msg.base.BaseBilibiliMsg;
 import tech.ordinaryroad.live.chat.client.commons.base.msg.IEnterRoomMsg;
 
+import java.io.IOException;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +98,68 @@ public class InteractWordMsg extends BaseBilibiliMsg implements IEnterRoomMsg {
             return null;
         }
         return data.uinfo.base.face;
+    }
+
+    /**
+     * 解析 INTERACT_WORD_V2 的 data.pb（base64 编码的 protobuf）。
+     * <p>
+     * 字段号参考 blivedm：uid=1，uname=2，msg_type=5（1 进入、2 关注、3 分享…），
+     * timestamp=7，uinfo=22（uinfo.base=2，base.face=2）。未知字段跳过。
+     *
+     * @param pbBase64 data.pb
+     * @return 与 INTERACT_WORD 相同结构的 Data，便于上层统一处理
+     */
+    public static Data parseV2Data(String pbBase64) throws IOException {
+        Data data = new Data();
+        CodedInputStream in = CodedInputStream.newInstance(Base64.getDecoder().decode(pbBase64));
+        int tag;
+        while ((tag = in.readTag()) != 0) {
+            switch (WireFormat.getTagFieldNumber(tag)) {
+                case 1:
+                    data.setUid(in.readInt64());
+                    break;
+                case 2:
+                    data.setUname(in.readString());
+                    break;
+                case 5:
+                    data.setMsg_type((int) in.readInt64());
+                    break;
+                case 7:
+                    data.setTimestamp(in.readInt64());
+                    break;
+                case 22: {
+                    Uinfo uinfo = new Uinfo();
+                    uinfo.setUid(data.getUid());
+                    uinfo.setBase(parseV2Base(in.readBytes().newCodedInput()));
+                    data.setUinfo(uinfo);
+                    break;
+                }
+                default:
+                    in.skipField(tag);
+            }
+        }
+        return data;
+    }
+
+    private static Base parseV2Base(CodedInputStream uinfoIn) throws IOException {
+        Base base = new Base();
+        int tag;
+        while ((tag = uinfoIn.readTag()) != 0) {
+            if (WireFormat.getTagFieldNumber(tag) == 2 && WireFormat.getTagWireType(tag) == WireFormat.WIRETYPE_LENGTH_DELIMITED) {
+                CodedInputStream baseIn = uinfoIn.readBytes().newCodedInput();
+                int t;
+                while ((t = baseIn.readTag()) != 0) {
+                    if (WireFormat.getTagFieldNumber(t) == 2 && WireFormat.getTagWireType(t) == WireFormat.WIRETYPE_LENGTH_DELIMITED) {
+                        base.setFace(baseIn.readString());
+                    } else {
+                        baseIn.skipField(t);
+                    }
+                }
+            } else {
+                uinfoIn.skipField(tag);
+            }
+        }
+        return base;
     }
 
     @lombok.Data

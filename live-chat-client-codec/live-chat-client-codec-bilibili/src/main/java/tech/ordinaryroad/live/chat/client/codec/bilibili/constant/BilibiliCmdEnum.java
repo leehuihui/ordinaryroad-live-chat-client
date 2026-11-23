@@ -125,6 +125,10 @@ public enum BilibiliCmdEnum {
     GIFT_PANEL_PLAN,
     INTERACT_WORD,
     /**
+     * 进场、关注、分享等互动消息（2025-09 起 B站以 protobuf 下发，data.pb 为 base64）
+     */
+    INTERACT_WORD_V2,
+    /**
      * 欢迎高能用户、(舰长?待验证)特殊消息
      */
     ENTRY_EFFECT,

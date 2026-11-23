@@ -130,6 +130,15 @@ public class BilibiliBinaryFrameHandler extends BaseNettyClientBinaryFrameHandle
                 break;
             }
 
+            case INTERACT_WORD_V2: {
+                // 2025-09 起 B站改为 protobuf 下发进场 / 关注 / 分享，结构与 INTERACT_WORD 一致，走同一个回调
+                InteractWordMsg interactWordMsg = new InteractWordMsg();
+                interactWordMsg.setProtover(messageMsg.getProtover());
+                interactWordMsg.setData(InteractWordMsg.parseV2Data(messageMsg.getData().get("pb").asText()));
+                iteratorMsgListeners(msgListener -> msgListener.onEnterRoomMsg(BilibiliBinaryFrameHandler.this, interactWordMsg));
+                break;
+            }
+
             case ENTRY_EFFECT: {
                 iteratorMsgListeners(msgListener -> msgListener.onEntryEffect(BilibiliBinaryFrameHandler.this, messageMsg));
                 break;
