@@ -46,6 +46,7 @@ import tech.ordinaryroad.live.chat.client.commons.base.exception.BaseException;
 import tech.ordinaryroad.live.chat.client.commons.base.listener.IBaseConnectionListener;
 import tech.ordinaryroad.live.chat.client.commons.util.OrJavaScriptUtil;
 import tech.ordinaryroad.live.chat.client.commons.util.OrLiveChatCollUtil;
+import tech.ordinaryroad.live.chat.client.commons.util.OrLiveChatCookieUtil;
 import tech.ordinaryroad.live.chat.client.commons.util.OrLiveChatHttpUtil;
 import tech.ordinaryroad.live.chat.client.douyin.config.DouyinLiveChatClientConfig;
 import tech.ordinaryroad.live.chat.client.douyin.listener.IDouyinConnectionListener;
@@ -113,11 +114,28 @@ public class DouyinLiveChatClient extends BaseNettyClient<DouyinLiveChatClientCo
         super.init();
     }
 
+    /**
+     * [patch] 生成 WebSocket 握手用的 Cookie：配置了登录 Cookie 时整串带上（缺 ttwid 则补上），否则只用游客 ttwid
+     */
+    static String buildWebSocketCookie(String configCookie, String ttwid) {
+        String ttwidPair = DouyinApis.KEY_COOKIE_TTWID + "=" + ttwid;
+        if (StrUtil.isBlank(configCookie)) {
+            return ttwidPair;
+        }
+        String cookie = StrUtil.trim(configCookie);
+        if (OrLiveChatCookieUtil.parseCookieString(cookie).containsKey(DouyinApis.KEY_COOKIE_TTWID)) {
+            return cookie;
+        }
+        return StrUtil.removeSuffix(cookie, ";") + "; " + ttwidPair;
+    }
+
     @Override
     public DouyinConnectionHandler initConnectionHandler(IBaseConnectionListener<DouyinConnectionHandler> clientConnectionListener) {
         return new DouyinConnectionHandler(() -> {
             DefaultHttpHeaders headers = new DefaultHttpHeaders();
-            headers.add(Header.COOKIE.name(), DouyinApis.KEY_COOKIE_TTWID + "=" + roomInitResult.getTtwid());
+            // [patch] 2026-04 起抖音只给登录用户推送礼物（WebcastGiftMessage），游客身份收不到。
+            // 原实现握手时只带游客 ttwid，config.cookie 只用于 HTTP 获取房间信息；这里改为带上完整的登录 Cookie。
+            headers.add(Header.COOKIE.name(), buildWebSocketCookie(getConfig().getCookie(), roomInitResult.getTtwid()));
             headers.add(Header.USER_AGENT.name(), getConfig().getUserAgent());
             return new WebSocketClientProtocolHandler(
                     WebSocketClientProtocolConfig.newBuilder()

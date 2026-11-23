@@ -108,7 +108,9 @@ public class DouyinCodecHandler extends BinaryWebSocketFrameToMessageCodec<IDouy
                             .setPayloadType(DouyinPayloadTypeEnum.ACK.getCode())
                             .setPayload(response.getInternalExtBytes())
                             .build();
-                    ctx.writeAndFlush(ack);
+                    // [patch] 原实现直接写 protobuf 对象，下游 WebSocket 编码器不认，ACK 实际发不出去，
+                    // 抖音会反复重发未确认的消息。这里包成 BinaryWebSocketFrame。
+                    ctx.writeAndFlush(new BinaryWebSocketFrame(ctx.alloc().buffer().writeBytes(ack.toByteArray())));
                 }
                 out.addAll(response.getMessagesListList().stream().map(DouyinCmdMsg::new).collect(Collectors.toList()));
                 return;
