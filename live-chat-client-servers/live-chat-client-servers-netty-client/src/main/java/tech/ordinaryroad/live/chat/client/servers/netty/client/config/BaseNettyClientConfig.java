@@ -62,4 +62,15 @@ public abstract class BaseNettyClientConfig extends BaseLiveChatClientConfig {
      */
     @Builder.Default
     private int maxFramePayloadLength = 64 * 1024;
+
+    /**
+     * 读空闲超时（秒）：超过该时间没有收到任何数据就主动关闭连接，交给自动重连处理。
+     * <p>
+     * 用于发现「网络已断但对端没有发送 RST」的假死连接（否则要等 TCP keepalive，约 2 小时）。
+     * 0 表示关闭（默认，与旧版本行为一致）。开启时应大于平台心跳回复间隔，建议 60 以上。
+     *
+     * @see io.netty.handler.timeout.IdleStateHandler
+     */
+    @Builder.Default
+    private int readerIdleTimeSeconds = 0;
 }

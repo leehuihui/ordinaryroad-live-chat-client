@@ -29,6 +29,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.websocketx.WebSocketClientProtocolHandler;
+import io.netty.handler.timeout.IdleState;
+import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.concurrent.ScheduledFuture;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -152,6 +154,12 @@ public abstract class BaseConnectionHandler<ConnectionHandler extends BaseConnec
             handshakeSuccessfully(ctx.channel());
         } else if (evt == WebSocketClientProtocolHandler.ClientHandshakeStateEvent.HANDSHAKE_TIMEOUT) {
             handshakeFailed(ctx, (WebSocketClientProtocolHandler.ClientHandshakeStateEvent) evt);
+        } else if (evt instanceof IdleStateEvent && ((IdleStateEvent) evt).state() == IdleState.READER_IDLE) {
+            // 读空闲：认为连接已假死，关闭后由 channelInactive -> onDisconnected 触发自动重连
+            if (log.isWarnEnabled()) {
+                log.warn("读空闲超时，关闭连接 {}", ctx.channel());
+            }
+            ctx.close();
         } else {
             super.userEventTriggered(ctx, evt);
         }

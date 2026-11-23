@@ -33,6 +33,7 @@ import io.netty.handler.codec.http.HttpClientCodec;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.proxy.Socks5ProxyHandler;
 import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.timeout.IdleStateHandler;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import lombok.Getter;
@@ -214,6 +215,11 @@ public abstract class BaseNettyClient
                         // 添加一个WebSocket协议处理器
                         pipeline.addLast(BaseNettyClient.this.connectionHandler.getWebSocketProtocolHandler().get());
 
+                        // 读空闲检测（readerIdleTimeSeconds > 0 时启用），超时后由连接处理器关闭连接并触发重连
+                        int readerIdleTimeSeconds = BaseNettyClient.this.getConfig().getReaderIdleTimeSeconds();
+                        if (readerIdleTimeSeconds > 0) {
+                            pipeline.addLast(new IdleStateHandler(readerIdleTimeSeconds, 0, 0, TimeUnit.SECONDS));
+                        }
                         // 连接处理器
                         pipeline.addLast(BaseNettyClient.this.connectionHandler);
 
